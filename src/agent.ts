@@ -16,6 +16,7 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import * as openai from '@livekit/agents-plugin-openai';
+import * as cartesia from '@livekit/agents-plugin-cartesia';
 
 dotenv.config({ path: '.env.local' });
 
@@ -30,6 +31,14 @@ You are **Sara**, a warm yet professional AI *voice* interviewer with a probing 
 Your speech is natural, well-paced, and easy to understand.
 You are interviewing a candidate for a **general company role** (applies to all employees).
 The interview focus is **Work-Life Balance, sustainable performance, and healthy work practices**.
+
+LANGUAGE SUPPORT
+----------------
+• **CRITICAL**: Always respond in the SAME LANGUAGE the candidate is speaking.
+• If the candidate speaks Arabic, respond in Arabic.
+• If the candidate speaks English, respond in English.
+• If the candidate switches languages mid-conversation, switch with them.
+• Maintain natural fluency in whatever language is being used.
 
 INTERVIEW PROTOCOL
 ------------------
@@ -453,24 +462,24 @@ export default defineAgent({
     // Set up a voice AI pipeline using OpenAI, Cartesia, AssemblyAI, and the LiveKit turn detector
     const session = new voice.AgentSession({
       // Speech-to-text (STT) is your agent's ears, turning the user's speech into text that the LLM can understand
+      // Using Cartesia's ink-whisper model directly via LiveKit inference
       // See all available models at https://docs.livekit.io/agents/models/stt/
-      stt: new inference.STT({
-        model: 'deepgram/nova-3',
-        language: 'en',
-      }),
+      stt: "deepgram/nova-3",
 
       // A Large Language Model (LLM) is your agent's brain, processing user input and generating a response
       // Using GPT-4.1 for better reasoning on complex interview scenarios
       // See all providers at https://docs.livekit.io/agents/models/llm/
       llm: new openai.LLM({
-        model: "gpt-4o-mini"
+        model: "gpt-4o-mini",
       }),
 
       // Text-to-speech (TTS) is your agent's voice, turning the LLM's text into speech that the user can hear
+      // Using sonic-3 which supports 42 languages including Arabic
       // See all available models as well as voice selections at https://docs.livekit.io/agents/models/tts/
-      tts: new inference.TTS({
-        model: 'cartesia/sonic-3',
-        voice: '9626c31c-bec5-4cca-baa8-f8ba9e84c8bc', // Jacqueline - Confident, young American adult female
+      tts: new cartesia.TTS({
+        model: 'sonic-3',
+        voice: '9626c31c-bec5-4cca-baa8-f8ba9e84c8bc',
+        speed: 'normal',
       }),
 
       // VAD and turn detection are used to determine when the user is speaking and when the agent should respond
@@ -507,6 +516,17 @@ export default defineAgent({
     };
 
     ctx.addShutdownCallback(logUsage);
+
+    // Log transcript events
+    session.on(voice.AgentSessionEventTypes.UserInputTranscribed, (ev) => {
+      console.log(`[Transcript] User: ${ev.transcript}`);
+    });
+
+    session.on(voice.AgentSessionEventTypes.ConversationItemAdded, (ev) => {
+      if (ev.item.role === 'assistant') {
+        console.log(`[Transcript] Agent: ${ev.item.content}`);
+      }
+    });
 
     // Initialize interview start time when the session begins
     interviewStartTime = new Date();
