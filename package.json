@@ -35,6 +35,7 @@
   "dependencies": {
     "@livekit/agents": "^1.0.21",
     "@livekit/agents-plugin-livekit": "^1.0.21",
+    "@livekit/agents-plugin-openai": "~1.0.31",
     "@livekit/agents-plugin-silero": "^1.0.21",
     "@livekit/noise-cancellation-node": "^0.1.9",
     "dotenv": "^17.2.3",
